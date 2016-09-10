@@ -5,29 +5,44 @@ defmodule PushHub.Aliyun do
   @action "Push"
 
   def process_url(url) do
-    "https://cloudpush.aliyuncs.com/?" <> url 
+    "https://cloudpush.aliyuncs.com/?" <> url
   end
+
+  @defaults %{"Target" => "all", 
+    "TargetValue" => ["all"], 
+    "Type" => 1, 
+    "DeviceType" => 1,
+    "StoreOffline" => true
+  }
 
   @doc """
   error response example:
   """
-  def send(devices, title, content, options \\ []) do
+  def send(title, content, options \\ @defaults) do
     if check_config do
-      url = "&Title=#{encode(title)}&Body=#{encode(content)}" <> with_nonce <> with_timestamp
+      %{"Target" => target, 
+        "TargetValue" => devices, 
+        "Type" => type, 
+        "DeviceType" => device_type,
+        "StoreOffline" => offline
+      } = Map.merge(@defaults, options)
+
+      url = "&Title=#{encode(title)}&Body=#{encode(content)}&Type=#{type}&StoreOffline=#{offline}&DeviceType=#{device_type}" 
+        <> with_devices(target, devices) <> with_nonce <> with_timestamp
 
       url = with_signature(basic_params <> url)
 
       response = get(url)
 
       case(response) do
-        {:ok, %HTTPoison.Response{status_code: code,
-          headers: headers,
+        {:ok, %HTTPoison.Response{status_code: _code,
+          headers: _headers,
           body: resp_body}} ->
             try do
               json = Poison.decode!(resp_body)
               case(json) do
                 %{"ResponseId" => _responseId} -> {:ok, json}
-                %{"Code" => code, "Message" => message} -> {:error, json}
+                %{"Code" => _code, "Message" => _message} -> {:error, json}
               end
             rescue
               _e -> {:error, resp_body}
@@ -55,10 +70,6 @@ defmodule PushHub.Aliyun do
     get_appkey && get_access_key_id && get_access_key_secret
   end
 
-  defp has_config(config) do
-    config && String.length(config) > 0
-  end
-
   defp encode(url) do
     url 
     |> URI.encode_www_form
@@ -69,8 +80,8 @@ defmodule PushHub.Aliyun do
     |> Base.encode64
   end
 
-  defp with_devices() do
-    "&Devices=e2ba19de97604f55b165576736477b74%2C92a1da34bdfd4c9692714917ce22d53d"
+  defp with_devices(target, devices) do
+    "&Target=#{target}&TargetValue=" <> Enum.join(devices, ",")
   end
 
   defp with_timestamp() do
@@ -86,7 +97,7 @@ defmodule PushHub.Aliyun do
   end
 
   defp basic_params() do
-    "Format=JSON&AccessKeyId=#{get_access_key_id}&Action=#{@action}&AppKey=#{get_appkey}&SignatureMethod=HMAC-SHA1&RegionId=cn-hangzhou&SignatureVersion=1.0&Version=2015-08-27&StoreOffline=true&Target=all&TargetValue=all&Type=1&DeviceType=1"
+    "Format=JSON&AccessKeyId=#{get_access_key_id}&Action=#{@action}&AppKey=#{get_appkey}&SignatureMethod=HMAC-SHA1&RegionId=cn-hangzhou&SignatureVersion=1.0&Version=2015-08-27"
   end
 
   defp with_signature(url) do
