@@ -7,6 +7,8 @@ defmodule PushHub.Mixfile do
      elixir: "~> 1.3",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
+     description: "Push Service Http Client for Elixir (Aliyun Push)",
+     package: package,
      deps: deps()]
   end
 
@@ -29,7 +31,18 @@ defmodule PushHub.Mixfile do
   defp deps do
     [
      {:poison, "~> 2.2.0"},
-     {:httpoison, "~> 0.9.1"}
+     {:httpoison, "~> 0.9.1"},
+     {:ex_doc, ">= 0.0.0", only: :dev}
+    ]
+  end
+
+  defp package do
+    [
+      name: :push_hub,
+      files: ["mix.exs", "lib", "README*", "LICENSE*"],
+      maintainers: ["Tsung Wu"],
+      licenses: ["Apache 2.0"],
+      links: %{"GitHub" => "https://github.com/reteq/push-hub"}
     ]
   end
 end
