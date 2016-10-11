@@ -29,7 +29,7 @@ defmodule PushHubTest do
 
   @tag :aliyun
   test "the truth" do
-    assert {:ok, _} = Aliyun.send(1, "hi", "cheq")
+    assert {:ok, _} = PushHub.send("hi", "cheq")
     assert 1 + 1 == 2
   end
 end
